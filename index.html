@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ระบบบริหารจัดการเหตุ</title>
+<style>
+body { font-family: Arial; background:#ffffff; margin:20px; }
+.section { margin-bottom:40px; }
+.card { background:#f3f3f3; padding:18px; margin:15px 0; border-radius:8px; }
+label { font-weight:bold; display:block; margin-top:10px; color:#000; }
+input, select { width:100%; padding:6px; margin-top:4px; }
+button { padding:8px 14px; margin:6px 4px 0 0; border:none; border-radius:6px; cursor:pointer; }
+.green { background:#28a745; color:#fff; }
+.blue { background:#87CEFA; }
+.red { background:#dc3545; color:#fff; }
+.status { font-weight:bold; margin-top:10px; }
+hr { margin:25px 0; }
+.small { font-size:13px; color:#555; }
+</style>
+</head>
+<body>
+
+<h1>ระบบบริหารจัดการเหตุ</h1>
+
+<!-- ศูนย์วิทยุ -->
+<div class="section">
+<h2>🔵 ศูนย์วิทยุ</h2>
+
+<label>ข้อมูลแจ้งศูนย์วิทยุ</label>
+<input id="r_info">
+
+<label>ตำแหน่ง</label>
+<input id="r_position">
+
+<label>ชื่อ–นามสกุลผู้แจ้ง</label>
+<input id="r_name">
+
+<label>เบอร์ผู้แจ้ง</label>
+<input id="r_phone">
+
+<label>เวลารับแจ้งเหตุ</label>
+<input id="r_time">
+
+<label>รายละเอียดเหตุ</label>
+<input id="r_detail">
+
+<button class="green" onclick="createCase()">บันทึกเหตุ</button>
+
+<hr>
+<h3>รายการเหตุทั้งหมด (ศูนย์วิทยุ)</h3>
+<div id="radioCases"></div>
+</div>
+
+<!-- สตาฟ -->
+<div class="section">
+<h2>🟢 เจ้าหน้าที่ / สตาฟ</h2>
+<div id="officerCases"></div>
+</div>
+
+<script>
+
+let cases = [];
+
+function createCase(){
+  let confirmCode = prompt("ยืนยันว่าคุณเป็นเจ้าหน้าที่ศูนย์วิทยุุ");
+  if(confirmCode !== "2520"){
+    alert("รหัสไม่ถูกต้อง");
+    return;
+  }
+
+  cases.push({
+    info:r_info.value,
+    position:r_position.value,
+    name:r_name.value,
+    phone:r_phone.value,
+    time:r_time.value,
+    detail:r_detail.value,
+    receiver:"",
+    status:"รอรับเคส"
+  });
+
+  renderAll();
+}
+
+function renderAll(){
+  renderRadio();
+  renderOfficer();
+}
+
+function renderRadio(){
+  let box=document.getElementById("radioCases");
+  box.innerHTML="";
+
+  cases.forEach((c,i)=>{
+    box.innerHTML+=`
+    <div class="card">
+      <label>ข้อมูลแจ้งศูนย์วิทยุ</label>${c.info}<br><br>
+      <label>ตำแหน่ง</label>${c.position}<br><br>
+      <label>ชื่อ–นามสกุลผู้แจ้ง</label>${c.name}
+      <label>เบอร์ผู้แจ้ง</label>${c.phone}
+      <label>เวลารับแจ้งเหตุ</label>${c.time}<br><br><br>
+      <label>รายละเอียดเหตุ</label>${c.detail}<br><br>
+
+      <div class="small">ผู้รับเคส: ${c.receiver || "-"}</div>
+      <div class="status">สถานะ: ${c.status}</div>
+
+      ${
+        c.status==="รอศูนย์ยืนยัน"
+        ? <button class="green" onclick="confirmFinish(${i})">ยืนยันปิดเคส</button>
+        : ""
+      }
+    </div>
+    `;
+  });
+}
+
+function renderOfficer(){
+  let box=document.getElementById("officerCases");
+  box.innerHTML="";
+
+  cases.forEach((c,i)=>{
+
+    box.innerHTML+=`
+    <div class="card">
+      <strong>${c.info}</strong><br>
+      สถานะ: ${c.status}<br><br>
+
+      ${
+        c.status==="รอรับเคส"
+        ? `
+        <label>ชื่อผู้รับเคส</label>
+        <input id="name${i}">
+        <label>รหัสประจำตัว</label>
+        <input id="id${i}">
+        <label>ตำแหน่ง</label>
+        <select id="role${i}">
+          <option value="">เลือกตำแหน่ง</option>
+          <option value="2520">ศูนย์วิทยุ</option>
+          <option value="1110">เฮดสตาฟ</option>
+          <option value="4520">สตาฟ</option>
+          <option value="11420">สายปกครอง</option>
+        </select>
+        <label>รหัสยืนยันตำแหน่ง</label>
+        <input id="code${i}">
+        <button class="green" onclick="accept(${i})">รับเคส</button>
+        `
+        : ""
+      }
+
+      ${
+        c.status==="รับเคสแล้ว"
+        ? `
+        <button class="blue" onclick="arrived(${i})">ถึงที่เกิดเหตุ</button>
+        <button class="red" onclick="cancelCase(${i})">ยกเลิก</button>
+        `
+        : ""
+      }
+
+      ${
+        c.status==="ถึงที่เกิดเหตุ"
+        ? `
+        <button class="green" onclick="requestClose(${i})">ส่งปิดเคส</button>
+        `
+        : ""
+      }
+
+    </div>
+    `;
+  });
+}
+
+function accept(i){
+  let role=document.getElementById("role"+i).value;
+  let code=document.getElementById("code"+i).value;
+  let name=document.getElementById("name"+i).value;
+
+  if(role!==code || role===""){
+    alert("รหัสตำแหน่งไม่ถูกต้อง");
+    return;
+  }
+
+  cases[i].receiver=name;
+  cases[i].status="รับเคสแล้ว";
+  renderAll();
+}
+
+function arrived(i){
+  cases[i].status="ถึงที่เกิดเหตุ";
+  renderAll();
+}
+
+function cancelCase(i){
+  cases[i].status="ยกเลิก";
+  renderAll();
+}
+
+function requestClose(i){
+  cases[i].status="รอศูนย์ยืนยัน";
+  renderAll();
+}
+
+function confirmFinish(i){
+  let code = prompt("กรอกรหัสยืนยันเจ้าหน้าที่ศูนย์วิทยุ");
+  if(code==="2520"){
+    cases[i].status="เสร็จสิ้น";
+    renderAll();
+  } else {
+    alert("รหัสไม่ถูกต้อง");
+  }
+}
+
+</script>
+</body>
+</html>
+
